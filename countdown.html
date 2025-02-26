@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #countdown-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .countdown {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: white;
+            min-width: 200px;
+        }
+        #settings-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #settings-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+        }
+        #settings-form input {
+            display: block;
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 100%;
+        }
+        #settings-form button {
+            padding: 5px 10px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="countdown-list"></div>
+    <button id="settings-btn">Settings</button>
+    <div id="settings-form">
+        <h2>Add New Deadline</h2>
+        <input type="text" id="title-input" placeholder="Title">
+        <input type="datetime-local" id="date-input">
+        <button id="add-btn">Add</button>
+        <button id="close-btn">Close</button>
+    </div>
+
+    <script>
+        let deadlines = JSON.parse(localStorage.getItem('deadlines')) || [];
+
+        function saveDeadlines() {
+            localStorage.setItem('deadlines', JSON.stringify(deadlines));
+        }
+
+        function displayCountdowns() {
+            const list = document.getElementById('countdown-list');
+            list.innerHTML = '';
+            deadlines.forEach((deadline, index) => {
+                const countdownDiv = document.createElement('div');
+                countdownDiv.className = 'countdown';
+                countdownDiv.innerHTML = `
+                    <h3>${deadline.title}</h3>
+                    <p id="time-${index}"></p>
+                    <button onclick="removeDeadline(${index})">Delete</button>
+                `;
+                list.appendChild(countdownDiv);
+            });
+            updateCountdowns();
+        }
+
+        function updateCountdowns() {
+            deadlines.forEach((deadline, index) => {
+                const timeElement = document.getElementById(`time-${index}`);
+                if (timeElement) {
+                    const now = new Date();
+                    const deadlineDate = new Date(deadline.date);
+                    const diff = deadlineDate - now;
+                    if (diff > 0) {
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                        timeElement.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                    } else {
+                        timeElement.textContent = 'Overdue';
+                    }
+                }
+            });
+        }
+
+        function removeDeadline(index) {
+            deadlines.splice(index, 1);
+            saveDeadlines();
+            displayCountdowns();
+        }
+
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-form').style.display = 'block';
+        });
+
+        document.getElementById('close-btn').addEventListener('click', () => {
+            document.getElementById('settings-form').style.display = 'none';
+        });
+
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const title = document.getElementById('title-input').value;
+            const date = document.getElementById('date-input').value;
+            if (title && date) {
+                deadlines.push({ title, date });
+                saveDeadlines();
+                displayCountdowns();
+                document.getElementById('settings-form').style.display = 'none';
+                document.getElementById('title-input').value = '';
+                document.getElementById('date-input').value = '';
+            }
+        });
+
+        displayCountdowns();
+        setInterval(updateCountdowns, 1000);
+    </script>
+</body>
+</html>
